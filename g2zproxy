@@ -131,13 +131,16 @@ class G2ZProxy(object):
 
         result = None
 
-        params = map(lambda x: x.strip(), metric['metric'].split(';'))
-
-        if len(params) > 1:
-            req_metric = '{0}.{1}'.format(metric['host'], params[0])
-            req = params[1].format(metric=req_metric)
+        if '{host}' in metric['metric']:
+            req = metric['metric'].format(host = metric['host'])
         else:
-            req = '{host}.{metric}'
+            params = map(lambda x: x.strip(), metric['metric'].split(';'))
+
+            if len(params) > 1:
+                req_metric = '{0}.{1}'.format(metric['host'], params[0])
+                req = params[1].format(metric=req_metric)
+            else:
+                req = '{host}.{metric}'
 
         req = req.format(host=metric['host'], metric=metric['metric'])
         req = self.aggregation_function.format(metric = req)
