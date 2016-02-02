@@ -186,7 +186,7 @@ class G2ZProxy(object):
 
                 if datapoints:
                     # We are only interested in latest datapoint
-                    data = datapoints[-1]
+                    data = datapoints[-2]
                     # Update metric record
 		    logger.debug({'value': data[0], 'time': data[1] })
                     metric.update({ 'value': data[0], 'time': data[1] })
