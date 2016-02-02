@@ -41,7 +41,8 @@ class G2ZProxy(object):
                 zabbix_user='admin',
                 zabbix_pass='zabbix',
                 graphite_url='http://localhost',
-                threads=1):
+                threads=1,
+                aggregation_function='{metric}'):
 
         self.cn = self.__class__.__name__
 
@@ -143,7 +144,7 @@ class G2ZProxy(object):
                 req = '{host}.{metric}'
 
         req = req.format(host=metric['host'], metric=metric['metric'])
-        req = self.aggregation_function.format(metric = req)
+        req = self.aggregation_function.format(metric=req)
         req = urllib2.quote(req)
 
         result = self.graphite_url.format(req=req)
