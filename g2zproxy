@@ -41,7 +41,7 @@ class G2ZProxy(object):
                 zabbix_user='admin',
                 zabbix_pass='zabbix',
                 graphite_url='http://localhost',
-                threads=1,
+                threads='1',
                 aggregation_function='{metric}'):
 
         self.cn = self.__class__.__name__
@@ -49,7 +49,7 @@ class G2ZProxy(object):
         # Takes needed metric from zabbix
         self.pattern = pattern
         self.zabbix_url = zabbix_url
-        self.graphite_url = graphite_url + '/render?from=-5minutes&rawData=true&target={req}&format=json'
+        self.graphite_url = graphite_url + '/render?from=-5min&target={req}&format=json'
         self.aggregation_function = aggregation_function
         self.zapi = ZabbixAPI(self.zabbix_url, user=zabbix_user, password=zabbix_pass)
         self.threads = threads
@@ -67,7 +67,7 @@ class G2ZProxy(object):
         hostids = list(set(map(lambda x: int(x['hostid']), metrics)))
 
         # Get host names by id
-        hostids = self.zapi.host.get(hostids=hostids, output=['name'])
+        hostids = self.zapi.host.get(hostids = hostids, output = ['name'])
 
         hosts = {}
         for m in hostids:
@@ -143,11 +143,11 @@ class G2ZProxy(object):
             else:
                 req = '{host}.{metric}'
 
-        req = req.format(host=metric['host'], metric=metric['metric'])
-        req = self.aggregation_function.format(metric=req)
+        req = req.format(host = metric['host'], metric = metric['metric'])
+        req = self.aggregation_function.format(metric = req)
         req = urllib2.quote(req)
 
-        result = self.graphite_url.format(req=req)
+        result = self.graphite_url.format(req = req)
         logger.debug("{0}:_getGraphiteData(): url:{1}".format(self.__class__.__name__, result))
 
         return result
@@ -169,18 +169,20 @@ class G2ZProxy(object):
             except Exception as e:
                 # if error, process next metric and print exception
 		logger.error('%s', e)
-                return #continue
+                pass #continue
             finally:
                 e_time = time.time() - s_time
                 # Convert to milliseconds
                 e_time = int(e_time * 1000)
-                print "{url} {time}ms".format(time=e_time, url=url)
+                print "{time}ms/t {url}".format(time = e_time, url = url)
 
             logger.debug("{0}:_getGraphiteData(): data:{1}\n".format(self.__class__.__name__, data))
             # Process data if it not empty
             if len(data) and 'datapoints' in data[0]:
                 datapoints = filter(lambda d: d[0] != None, data[0]['datapoints'])
+                lost_datapoints = len(data[0]['datapoints']) - len(datapoints)
                 logger.debug("{0}:_getGraphiteData(): filter(datapoints):{1}".format(self.__class__.__name__, datapoints))
+                logger.debug("{0}:_getGraphiteData(): lost_datapoints:{1}".format(self.__class__.__name__, lost_datapoints))
 
                 if datapoints:
                     # We are only interested in latest datapoint
@@ -189,7 +191,7 @@ class G2ZProxy(object):
 		    logger.debug({'value': data[0], 'time': data[1] })
                     metric.update({ 'value': data[0], 'time': data[1] })
 
-        pool = Pool(processes=self.threads)
+        pool = Pool(processes=50)
         try:
             pool.map(getData, self.metrics)
         except Exception as e:
@@ -234,7 +236,7 @@ if __name__ == '__main__':
             help='Specify zabbix password.')
     argparser.add_argument('-g', '--graphite-url', default='http://localhost',
             help='Specify URL to Graphite.')
-    argparser.add_argument('-t', '--threads', default=50, type=int,
+    argparser.add_argument('-t', '--threads', default='50',
             help='Number threads to get simultaneously requests to Graphite')
     argparser.add_argument('-a', '--aggregation-function', default='timeShift(movingAverage({metric}, "5min"), "+150sec")',
             help='Aggregation function')
